@@ -1,0 +1,8 @@
+# replace config to you paypal account and test the api
+host: "https://api-3t.sandbox.paypal.com/"
+client_id: "AXBg"
+secret: "EJcYio4_PtAxPQvSYG"
+api_credentials:
+  username: "sb-"
+  password: "TB6"
+  signature: "AR"
