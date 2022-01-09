@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/dghubble/sling"
+	"github.com/linhoi/gopay/common/httpx"
 	"github.com/linhoi/kit/log"
 	"go.uber.org/zap"
-	"gopay/common/httpx"
 )
 
 const (

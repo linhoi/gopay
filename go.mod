@@ -1,4 +1,4 @@
-module github.linhoi.gopay
+module github.com/linhoi/gopay
 
 go 1.16
 

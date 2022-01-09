@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"gopay/psp/paypal/ipn"
+	"github.com/linhoi/gopay/psp/paypal/ipn"
 )
 
 func main() {
