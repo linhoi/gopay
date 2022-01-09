@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/linhoi/kit/log"
 	"go.uber.org/zap"
@@ -36,6 +37,9 @@ type API interface {
 
 	Acknowledge(ctx context.Context, packageName string, productID string, token string) error
 	AcknowledgeByReceipt(ctx context.Context, receipt Receipt) error
+
+	GetVoidedPurchase(ctx context.Context, v VoidedPurchase) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error)
+	DealVoidPurchase(ctx context.Context, d DealVoidedPurchase) (dealFailed []*androidpublisher.VoidedPurchase, err error)
 
 	// ReceiveRealTimeDeveloperNotification ...
 	// RTDN means RealTimeDeveloperNotification
@@ -146,4 +150,73 @@ func (c *Client) ReceiveRealTimeDeveloperNotification(ctx context.Context, req *
 	}
 
 	return nil
+}
+
+type VoidedPurchase struct {
+	PackageName string
+	StartTime   *time.Time
+	EndTime     *time.Time
+	Token       string
+}
+
+type DealVoidedPurchase struct {
+	PackageName string
+	StartTime   time.Time
+	EndTime     time.Time
+	dealFunc    func(ctx context.Context, voidedPurchase *androidpublisher.VoidedPurchase) error
+}
+
+func (c *Client) GetVoidedPurchase(ctx context.Context, v VoidedPurchase) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
+	res, err := c.googlePublisher.Purchases.Voidedpurchases.List(v.PackageName).StartTime(v.StartTime.Unix()).EndTime(v.EndTime.Unix()).Token(v.Token).Do()
+	if err != nil {
+		log.L(ctx).Warn("get voided purchase failed", zap.Error(err), zap.Any("req", v))
+		return nil, "", err
+	}
+	if res.TokenPagination != nil {
+		nextPageToken = res.TokenPagination.NextPageToken
+	}
+
+	return res.VoidedPurchases, nextPageToken, nil
+}
+
+func (c *Client) DealVoidPurchase(ctx context.Context, d DealVoidedPurchase) (dealFailed []*androidpublisher.VoidedPurchase, err error) {
+	var nextPageToken string
+	var voidedPurchases []*androidpublisher.VoidedPurchase
+
+	res, err := c.googlePublisher.Purchases.Voidedpurchases.List(d.PackageName).StartTime(d.StartTime.Unix()).EndTime(d.EndTime.Unix()).Do()
+	if err != nil {
+		log.L(ctx).Warn("list voided purchase failed", zap.Error(err), zap.Any("req", d))
+		return nil, err
+	}
+	if res.TokenPagination != nil {
+		nextPageToken = res.TokenPagination.NextPageToken
+	}
+	voidedPurchases = res.VoidedPurchases
+
+	for {
+		for _, voidedPurchase := range voidedPurchases {
+			if d.dealFunc != nil {
+				err := d.dealFunc(ctx, voidedPurchase)
+				if err != nil {
+					dealFailed = append(dealFailed, voidedPurchase)
+				}
+			}
+		}
+
+		if nextPageToken == "" {
+			break
+		}
+
+		res, err := c.googlePublisher.Purchases.Voidedpurchases.List(d.PackageName).StartTime(d.StartTime.Unix()).EndTime(d.EndTime.Unix()).Token(nextPageToken).Do()
+		if err != nil {
+			log.L(ctx).Warn("list voided purchase failed", zap.Error(err), zap.Any("req", d))
+			return dealFailed, err
+		}
+		if res.TokenPagination != nil {
+			nextPageToken = res.TokenPagination.NextPageToken
+		}
+		voidedPurchases = res.VoidedPurchases
+	}
+
+	return dealFailed, nil
 }
