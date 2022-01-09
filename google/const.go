@@ -1,5 +1,12 @@
 package google
 
+import (
+	"context"
+	"time"
+
+	"google.golang.org/api/androidpublisher/v3"
+)
+
 const (
 	PurchaseStatePurchased = 0
 	PurchaseStateCanceled  = 1
@@ -74,4 +81,18 @@ type ReceiptCore struct {
 	ProductID        string `json:"productId"`
 	SubscriptionID   string `json:"subscriptionId"`
 	Token            string `json:"purchaseToken"`
+}
+
+type VoidedPurchase struct {
+	PackageName string
+	StartTime   *time.Time
+	EndTime     *time.Time
+	Token       string
+}
+
+type DealVoidedPurchase struct {
+	PackageName string
+	StartTime   time.Time
+	EndTime     time.Time
+	dealFunc    func(ctx context.Context, voidedPurchase *androidpublisher.VoidedPurchase) error
 }

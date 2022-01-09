@@ -6,16 +6,20 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"time"
 
+	"github.com/linhoi/gopay/common/httpx"
 	"github.com/linhoi/kit/log"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/androidpublisher/v3"
 	"google.golang.org/api/option"
 )
 
 type Client struct {
+	credentials     []byte
 	googlePublisher *androidpublisher.Service
+	client          *http.Client
 }
 
 func NewClient(credentialsJSON []byte) (*Client, error) {
@@ -24,11 +28,15 @@ func NewClient(credentialsJSON []byte) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
+		credentials:     credentialsJSON,
 		googlePublisher: service,
+		client:          httpx.NewClient(),
 	}, nil
 }
 
 type API interface {
+	GetToken(ctx context.Context) (*oauth2.Token, error)
+
 	GetPurchase(ctx context.Context, packageName string, productID string, purchaseToken string) (*androidpublisher.ProductPurchase, error)
 	GetPurchaseByReceipt(ctx context.Context, receipt Receipt) (*androidpublisher.ProductPurchase, error)
 
@@ -48,6 +56,24 @@ type API interface {
 }
 
 var _ API = (*Client)(nil)
+
+func (c *Client) GetToken(ctx context.Context) (tokenInfo *oauth2.Token, err error) {
+	conf, err := google.JWTConfigFromJSON(c.credentials, androidpublisher.AndroidpublisherScope)
+	if err != nil {
+		log.L(ctx).Warn("google get jwt config failed", zap.Error(err))
+		return nil, err
+	}
+
+	authCtx := context.WithValue(context.Background(), oauth2.HTTPClient, c.client)
+	authTransport := conf.Client(authCtx).Transport.(*oauth2.Transport)
+	token, err := authTransport.Source.Token()
+	if err != nil {
+		log.L(ctx).Warn("auth transport get token failed", zap.Error(err))
+		return nil, err
+	}
+
+	return token, nil
+}
 
 func (c *Client) GetPurchase(ctx context.Context, packageName string, productID string, purchaseToken string) (*androidpublisher.ProductPurchase, error) {
 	res, err := c.googlePublisher.Purchases.Products.Get(packageName, productID, purchaseToken).Do()
@@ -150,20 +176,6 @@ func (c *Client) ReceiveRealTimeDeveloperNotification(ctx context.Context, req *
 	}
 
 	return nil
-}
-
-type VoidedPurchase struct {
-	PackageName string
-	StartTime   *time.Time
-	EndTime     *time.Time
-	Token       string
-}
-
-type DealVoidedPurchase struct {
-	PackageName string
-	StartTime   time.Time
-	EndTime     time.Time
-	dealFunc    func(ctx context.Context, voidedPurchase *androidpublisher.VoidedPurchase) error
 }
 
 func (c *Client) GetVoidedPurchase(ctx context.Context, v VoidedPurchase) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
