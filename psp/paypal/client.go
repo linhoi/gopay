@@ -11,6 +11,7 @@ import (
 	"github.com/dghubble/sling"
 	"github.com/linhoi/kit/log"
 	"go.uber.org/zap"
+	"gopay/common/httpx"
 )
 
 const (
@@ -60,7 +61,8 @@ type APICredentials struct {
 }
 
 func NewClient(c Config) *Client {
-	client := sling.New().Client(&http.Client{Timeout: clientTimeout})
+	hc := httpx.NewClient()
+	client := sling.New().Client(hc)
 	return &Client{
 		client: client,
 		config: c,
@@ -124,7 +126,7 @@ func (c *Client) ListDisputes(ctx context.Context) (disputeItems []DisputeItem, 
 	path := c.config.Host + listDisputesPath
 	var firstPageDisputes ListDisputesResp
 	var errResp ErrorResp
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		QueryStruct(ListDisputesReq{DisputeState: disputeStateRESOLVED, PageSize: maxPageSize}).
 		Path(path).Receive(&firstPageDisputes, &errResp)
 
@@ -146,7 +148,7 @@ func (c *Client) listFirstPageDisputes(ctx context.Context) (disputeItems []Disp
 	path := c.config.Host + listDisputesPath
 	var firstPageDisputes ListDisputesResp
 	var errResp ErrorResp
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		QueryStruct(ListDisputesReq{DisputeState: disputeStateRESOLVED, PageSize: maxPageSize}).
 		Path(path).Receive(&firstPageDisputes, &errResp)
 
@@ -168,7 +170,7 @@ func (c *Client) listFirstPageDisputesV2(ctx context.Context, startTime, endTime
 	path := c.config.Host + listDisputesPath
 	var firstPageDisputes ListDisputesResp
 	var errResp ErrorResp
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		QueryStruct(ListDisputesReq{DisputeState: disputeStateRESOLVED, PageSize: maxPageSize,
 			UpdateTimeAfter: startTime.Format(timeFmt), UpdateTimeBefore: endTime.Format(timeFmt)}).
 		Path(path).Receive(&firstPageDisputes, &errResp)
@@ -197,7 +199,7 @@ func (c *Client) ListOnePageDisputes(ctx context.Context, pagePageToken string) 
 	var errResp ErrorResp
 
 	path := c.config.Host + listDisputesPath
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		QueryStruct(ListDisputesReq{DisputeState: disputeStateRESOLVED, PageSize: maxPageSize, NextPageToken: pagePageToken}).
 		Path(path).Receive(&nextPageDisputes, &errResp)
 	if err = errResp.Err(err); err != nil {
@@ -223,7 +225,7 @@ func (c *Client) ListOnePageDisputesV2(ctx context.Context, pagePageToken string
 	var errResp ErrorResp
 
 	path := c.config.Host + listDisputesPath
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		QueryStruct(
 			ListDisputesReq{DisputeState: disputeStateRESOLVED, PageSize: maxPageSize, NextPageToken: pagePageToken,
 				UpdateTimeAfter: startTime.Format(timeFmt), UpdateTimeBefore: endTime.Format(timeFmt)}).
@@ -250,7 +252,7 @@ func (c *Client) listAllDisputes(ctx context.Context, accessToken string, firstP
 
 		var nextPageDisputes ListDisputesResp
 		var errResp ErrorResp
-		_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+		_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 			Path(path).Receive(&nextPageDisputes, &errResp)
 		if err = errResp.Err(err); err != nil {
 			log.S(ctx).Errorw("listAllDisputes", "err", err)
@@ -291,7 +293,7 @@ func (c *Client) ShowDisputeDetails(ctx context.Context, disputeID string) (deta
 
 	path := c.config.Host + showDisputeDetailsPath + disputeID
 	var errResp ErrorResp
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		Path(path).Receive(&detail, &errResp)
 	if err = errResp.Err(err); err != nil {
 		log.S(ctx).Errorw("ShowDisputeDetails", "err", err)
@@ -401,7 +403,7 @@ func (c *Client) GetTransaction(ctx context.Context, transactionID string, start
 	var resp TransactionSearchResp
 	var errResp ErrorResp
 	path := c.config.Host + getTransactionPath
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		Path(path).QueryStruct(TransactionSearchReq{TransactionID: transactionID, StartDate: startTime.Format(timeFmt), EndDate: endTime.Format(timeFmt), Fields: "all", PageSize: 100, Page: 1}).
 		Receive(&resp, &errResp)
 
@@ -449,7 +451,7 @@ func (c *Client) getRefundTransactionByPage(ctx context.Context, startTime, endT
 	var resp TransactionSearchResp
 	var errResp ErrorResp
 	path := c.config.Host + getTransactionPath
-	_, err = sling.New().Client(&http.Client{Timeout: clientTimeout}).Set("Authorization", "Bearer "+accessToken).
+	_, err = c.client.Set("Authorization", "Bearer "+accessToken).
 		Path(path).QueryStruct(
 		TransactionSearchReq{
 			StartDate: startTime.Format(timeFmt), EndDate: endTime.Format(timeFmt), Fields: "all", PageSize: maxPageSizeForTranscationSearch, Page: page,

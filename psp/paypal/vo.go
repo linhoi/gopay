@@ -9,9 +9,4 @@ const (
 	DoExpressCheckoutPayment NVPMethod = "DoExpressCheckoutPayment"
 
 	Version124 NVPVersion = "124.0"
-
-
-
-
-
 )
