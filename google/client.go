@@ -29,8 +29,13 @@ func NewClient(credentialsJSON []byte) (*Client, error) {
 
 type API interface {
 	GetPurchase(ctx context.Context, packageName string, productID string, purchaseToken string) (*androidpublisher.ProductPurchase, error)
-	GetSubscription(ctx context.Context, packageName, subscriptionID, purchaseToken string)  (*androidpublisher.SubscriptionPurchase, error)
+	GetPurchaseByReceipt(ctx context.Context, receipt Receipt) (*androidpublisher.ProductPurchase, error)
+
+	GetSubscription(ctx context.Context, packageName, subscriptionID, purchaseToken string) (*androidpublisher.SubscriptionPurchase, error)
+	GetSubscriptionByReceipt(ctx context.Context, receipt Receipt) (*androidpublisher.SubscriptionPurchase, error)
+
 	Acknowledge(ctx context.Context, packageName string, productID string, token string) error
+	AcknowledgeByReceipt(ctx context.Context, receipt Receipt) error
 
 	// ReceiveRealTimeDeveloperNotification ...
 	// RTDN means RealTimeDeveloperNotification
@@ -67,7 +72,7 @@ func (c *Client) GetSubscription(ctx context.Context, packageName, subscriptionI
 }
 
 func (c *Client) Acknowledge(ctx context.Context, packageName string, productID string, token string) error {
-	err := c.googlePublisher.Purchases.Products.Acknowledge(packageName, productID, token,nil).Do()
+	err := c.googlePublisher.Purchases.Products.Acknowledge(packageName, productID, token, nil).Do()
 	if err != nil {
 		log.L(ctx).Warn("google play get subscription failed", zap.Error(err))
 		return err
@@ -76,40 +81,52 @@ func (c *Client) Acknowledge(ctx context.Context, packageName string, productID 
 	return nil
 }
 
+func (c *Client) GetPurchaseByReceipt(ctx context.Context, receipt Receipt) (*androidpublisher.ProductPurchase, error) {
+	return c.GetPurchase(ctx, receipt.PackageName, receipt.ProductID, receipt.Token)
+}
+
+func (c *Client) GetSubscriptionByReceipt(ctx context.Context, receipt Receipt) (*androidpublisher.SubscriptionPurchase, error) {
+	return c.GetSubscription(ctx, receipt.PackageName, receipt.SubscriptionID, receipt.Token)
+}
+
+func (c *Client) AcknowledgeByReceipt(ctx context.Context, receipt Receipt) error {
+	return c.Acknowledge(ctx, receipt.PackageName, receipt.ProductID, receipt.Token)
+}
+
 func (c *Client) ReceiveRealTimeDeveloperNotification(ctx context.Context, req *http.Request) error {
-	body , err := ioutil.ReadAll(req.Body)
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.L(ctx).Warn("read rtdn body failed",zap.Error(err))
+		log.L(ctx).Warn("read rtdn body failed", zap.Error(err))
 		return err
 	}
 
 	var rtdnBody RTDNBody
-	err = json.Unmarshal(body,&rtdnBody)
+	err = json.Unmarshal(body, &rtdnBody)
 	if err != nil {
-		log.L(ctx).Warn("read rtdn json unmarshal failed",zap.Error(err))
+		log.L(ctx).Warn("read rtdn json unmarshal failed", zap.Error(err))
 		return err
 	}
 
-	data,err := base64.StdEncoding.DecodeString(rtdnBody.Message.Data)
+	data, err := base64.StdEncoding.DecodeString(rtdnBody.Message.Data)
 	if err != nil {
-		log.L(ctx).Warn("read rtdn decode failed",zap.Error(err))
+		log.L(ctx).Warn("read rtdn decode failed", zap.Error(err))
 		return err
 	}
 
 	var rtdnData RTDNData
-	err = json.Unmarshal(data,&rtdnData)
+	err = json.Unmarshal(data, &rtdnData)
 	if err != nil {
-		log.L(ctx).Warn("read rtdn json unmarshal after decode failed",zap.Error(err))
+		log.L(ctx).Warn("read rtdn json unmarshal after decode failed", zap.Error(err))
 		return err
 	}
 
 	if rtdnData.OneTimeProductNotification == nil {
-		log.L(ctx).Info("rtdn is not one time product notification",zap.Error(err))
+		log.L(ctx).Info("rtdn is not one time product notification", zap.Error(err))
 		return nil
 	}
 
 	if rtdnData.OneTimeProductNotification.NotificationType != ONE_TIME_PRODUCT_PURCHASED {
-		log.L(ctx).Info("rtdn is not one time product purchases notification",zap.Error(err))
+		log.L(ctx).Info("rtdn is not one time product purchases notification", zap.Error(err))
 		return nil
 	}
 
@@ -118,13 +135,13 @@ func (c *Client) ReceiveRealTimeDeveloperNotification(ctx context.Context, req *
 		return nil
 	}
 	if err != nil {
-		log.L(ctx).Info("rtdn get purchase  failed",zap.Error(err),zap.Any("rtdn",rtdnData))
+		log.L(ctx).Info("rtdn get purchase  failed", zap.Error(err), zap.Any("rtdn", rtdnData))
 		return err
 	}
 
 	err = c.Acknowledge(ctx, rtdnData.PackageName, rtdnData.OneTimeProductNotification.Sku, rtdnData.OneTimeProductNotification.PurchaseToken)
 	if err != nil {
-		log.L(ctx).Info("rtdn acknowledge  failed",zap.Error(err),zap.Any("rtdn",rtdnData))
+		log.L(ctx).Info("rtdn acknowledge  failed", zap.Error(err), zap.Any("rtdn", rtdnData))
 		return err
 	}
 

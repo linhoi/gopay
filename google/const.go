@@ -59,3 +59,19 @@ type RTDNData struct {
 		Version string `json:"version"`
 	} `json:"testNotification"`
 }
+
+type Receipt struct {
+	ReceiptCore
+	State            int    `json:"purchaseState"`
+	Time             int    `json:"purchaseTime"`
+	OrderID          string `json:"orderId"`
+	Acknowledged     bool   `json:"acknowledged"`
+	DeveloperPayload string `json:"developerPayload"`
+}
+
+type ReceiptCore struct {
+	PackageName      string `json:"packageName"`
+	ProductID        string `json:"productId"`
+	SubscriptionID   string `json:"subscriptionId"`
+	Token            string `json:"purchaseToken"`
+}
