@@ -94,5 +94,5 @@ type DealVoidedPurchase struct {
 	PackageName string
 	StartTime   time.Time
 	EndTime     time.Time
-	dealFunc    func(ctx context.Context, voidedPurchase *androidpublisher.VoidedPurchase) error
+	DealFunc    func(ctx context.Context, voidedPurchase *androidpublisher.VoidedPurchase) error
 }

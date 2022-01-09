@@ -207,8 +207,8 @@ func (c *Client) DealVoidPurchase(ctx context.Context, d DealVoidedPurchase) (de
 
 	for {
 		for _, voidedPurchase := range voidedPurchases {
-			if d.dealFunc != nil {
-				err := d.dealFunc(ctx, voidedPurchase)
+			if d.DealFunc != nil {
+				err := d.DealFunc(ctx, voidedPurchase)
 				if err != nil {
 					dealFailed = append(dealFailed, voidedPurchase)
 				}
