@@ -51,9 +51,9 @@ type RTDNData struct {
 	} `json:"oneTimeProductNotification"`
 	SubscriptionNotification *struct {
 		Version          string           `json:"version"`
-		Notificationtype NotificationType `json:"notificationtype"`
-		Purchasetoken    string           `json:"purchasetoken"`
-		Subscriptionid   string           `json:"subscriptionid"`
+		NotificationType NotificationType `json:"notificationType"`
+		PurchaseToken    string           `json:"purchaseToken"`
+		SubscriptionID   string           `json:"subscriptionId"`
 	} `json:"subscriptionnotification"`
 	TestNotification *struct {
 		Version string `json:"version"`

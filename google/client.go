@@ -35,7 +35,7 @@ type API interface {
 	// ReceiveRealTimeDeveloperNotification ...
 	// RTDN means RealTimeDeveloperNotification
 	// https://developer.android.google.cn/google/play/billing/rtdn-reference?hl=zh-cn
-	ReceiveRealTimeDeveloperNotification(ctx context.Context, req *http.Request)
+	ReceiveRealTimeDeveloperNotification(ctx context.Context, req *http.Request) error
 }
 
 var _ API = (*Client)(nil)
