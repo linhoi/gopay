@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 
 	"github.com/awa/go-iap/appstore"
 	"github.com/linhoi/gopay/common/httpx"
@@ -11,16 +12,56 @@ import (
 	"go.uber.org/zap"
 )
 
+type (
+	NotifyHandle = func(ctx context.Context, notify NotificationV1) error
+	IAPHandle    = func(ctx context.Context, iapResponse *appstore.IAPResponse) error
+)
+
 type IAP interface {
 	// LocalValidateReceipt ...
 	LocalValidateReceipt(ctx context.Context, receipt string) (*Receipts, error)
 	// Verify ...
 	Verify(ctx context.Context, receipt string) (*appstore.IAPResponse, error)
+	// OnNotificationV1 https://developer.apple.com/documentation/appstoreservernotifications
+	// https://developer.apple.com/documentation/appstoreservernotifications/receiving_app_store_server_notifications
+	OnNotificationV1(ctx context.Context, notificationBody []byte, iapHandel IAPHandle, handleFunc NotifyHandle) error
 }
 
 type Client struct {
 	config   *Config
 	appstore *appstore.Client
+}
+
+func (c *Client) OnNotificationV1(ctx context.Context, notificationBody []byte, iapHandel IAPHandle, notifyHandle NotifyHandle) error {
+	var notify NotificationV1
+	err := json.Unmarshal(notificationBody, &notify)
+	if err != nil {
+		log.L(ctx).Warn("on notify josn unmarshal failed", zap.Error(err))
+		return nil
+	}
+
+	iapResponse, err := c.Verify(ctx, notify.UnifiedReceipt.LatestReceipt)
+	if err != nil {
+		log.L(ctx).Warn("on notify verify failed", zap.Error(err))
+		return err
+	}
+
+	if iapHandel != nil {
+		err = iapHandel(ctx, iapResponse)
+		if err != nil {
+			log.L(ctx).Error("iap handle error", zap.Error(err))
+			return err
+		}
+	}
+
+	if notifyHandle != nil {
+		err = notifyHandle(ctx, notify)
+		if err != nil {
+			log.L(ctx).Error("notify handle error", zap.Error(err))
+			return err
+		}
+	}
+	return nil
 }
 
 // NewClient ...
