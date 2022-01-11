@@ -9,9 +9,7 @@ import (
 	"github.com/fullsailor/pkcs7"
 )
 
-// ParseReceipt parses a receipt binary which certificates with
-// root certificate.
-// Need decode to DER binary if received a base64 file.
+// ParseReceipt parses a receipt binary data with root certificate.
 func ParseReceipt(root *x509.Certificate, data []byte) (Receipts, error) {
 	pkcs, err := pkcs7.Parse(data)
 	if err != nil {
