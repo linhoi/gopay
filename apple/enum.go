@@ -31,4 +31,14 @@ var (
 
 var (
 	StatusSuccess Status = 0
+	StatusMethodError Status = 21000
+	StatusReceiptMalformedOrServiceError Status = 21002
+	StatusReceiptUnauthenticated Status = 21003
+	StatusSharedSecretUnMatch    Status = 21004
+	StatusReceiptProvideError    Status = 21005
+	StatusReceiptSubscriptionExpired Status = 21006
+	StatusEnvironmentDisMatchFromTest Status = 21007
+	StatusEnvironmentDisMatchFromProduction Status = 21008
+	StatusDataAccessError Status = 21009
+	StatusAccountError Status = 21010
 )
