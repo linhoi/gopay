@@ -174,7 +174,7 @@ func (p *Proxy) do(run func() (resp *http.Response, err error)) (resp *http.Resp
 	if breakerErr != nil {
 		fmt.Printf("breaker error %s\n", breakerErr)
 	}
-	if resp == nil || err == nil {
+	if resp == nil && err == nil && breakerErr != nil {
 		return nil, breakerErr
 	}
 	return resp, err
