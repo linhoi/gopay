@@ -37,8 +37,8 @@ func (h HystrixBreaker) GetName() string {
 }
 
 // NewHystrixBreaker ...
-func NewHystrixBreaker(c Config) (*HystrixBreaker, error) {
-	if c.Name == "" {
+func NewHystrixBreaker(c *Config) (*HystrixBreaker, error) {
+	if c == nil || c.Name == "" {
 		return nil, errors.New("breaker name not defined")
 	}
 

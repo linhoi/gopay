@@ -29,7 +29,7 @@ func New(breakerType BreakerType, c Config) (ICircuitBreaker, error) {
 
 	switch breakerType {
 	case Hystrix:
-		return NewHystrixBreaker(c)
+		return NewHystrixBreaker(&c)
 	default:
 		return nil, errors.New("unkonwn breaker type")
 

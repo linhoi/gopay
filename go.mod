@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/linhoi/kit v0.0.0-20211126023252-acd4c6009df2
 	github.com/pkg/errors v0.9.1
+	github.com/smallnest/weighted v0.0.0-20201102054551-85ac5c79528c
 	github.com/smartystreets/goconvey v1.7.2 // indirect
 	github.com/sony/gobreaker v0.5.0
 	github.com/stretchr/objx v0.2.0 // indirect

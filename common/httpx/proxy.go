@@ -6,10 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
+	"github.com/linhoi/gopay/common/balance"
 	"github.com/linhoi/gopay/common/breaker"
 	"github.com/linhoi/gopay/common/netx"
-	"github.com/pkg/errors"
 )
 
 type Proxy struct {
@@ -18,16 +19,17 @@ type Proxy struct {
 	proxyClient    *http.Client
 	proxyTransport *http.Transport
 
-	LoadBalance interface{}
+	LoadBalance balance.Weight
 	// CircuitBreaker is for proxy client
 	CircuitBreaker breaker.ICircuitBreaker
 
-	Config interface{}
+	Config *ProxyConfig
 }
 
 type ProxyConfig struct {
 	ProxyUrl      string
 	BreakerConfig *breaker.Config
+	BalanceConfig *balance.Config
 }
 
 var defaultRecordFunc = func(err error) error {
@@ -54,7 +56,7 @@ func NewProxyClient(cfg ProxyConfig) (*Proxy, error) {
 
 	var circuitBreaker breaker.ICircuitBreaker
 	if cfg.BreakerConfig != nil {
-		circuitBreaker, err = breaker.NewHystrixBreaker(*cfg.BreakerConfig)
+		circuitBreaker, err = breaker.NewHystrixBreaker(cfg.BreakerConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -64,35 +66,12 @@ func NewProxyClient(cfg ProxyConfig) (*Proxy, error) {
 		rowClient:      NewClient(),
 		proxyClient:    NewClientWithTransPort(&transport),
 		proxyTransport: &transport,
-		LoadBalance:    nil,
 		CircuitBreaker: circuitBreaker,
 	}
 	p.proxyTransport = &transport
+	p.setBalance(cfg.BalanceConfig)
 
 	return p, nil
-}
-
-// OnProxyChange ...
-func (p *Proxy) OnProxyChange(proxyUrl string) {
-	proxy, err := url.Parse(proxyUrl)
-	if err != nil {
-		fmt.Println("proxy url is invalid", err)
-		return
-	}
-
-	err = netx.ValidateUrl(proxyUrl)
-	if err != nil {
-		fmt.Println("proxy is invalid", err)
-		return
-	}
-
-	transport := http.Transport{
-		Proxy: http.ProxyURL(proxy),
-	}
-	// have to reset proxy client, only reset transport is un useful
-	p.proxyClient = NewClientWithTransPort(&transport)
-	p.proxyTransport = &transport
-	fmt.Println("proxy is change to ", proxyUrl)
 }
 
 // Get ...
@@ -150,12 +129,26 @@ func (p *Proxy) validProxy() bool {
 		fmt.Println("circuit breaker is open")
 		return false
 	}
-	return true
+
+
+	if p.LoadBalance == nil {
+		return true
+	}
+
+	clientType, ok := p.LoadBalance.Next().(string)
+	if !ok {
+		return false
+	}
+	if ClientType(clientType) == ClientTypeProxy {
+		return true
+	}
+	return false
 }
 
 func isContextError(err error) bool {
-	coreError := errors.Cause(err)
-	return coreError == context.DeadlineExceeded || coreError == context.Canceled
+	//coreError := errors.Cause(err)
+	//return coreError == context.DeadlineExceeded || coreError == context.Canceled
+	return strings.Contains(err.Error(), context.Canceled.Error()) || strings.Contains(err.Error(), context.DeadlineExceeded.Error())
 }
 
 func (p *Proxy) do(run func() (resp *http.Response, err error)) (resp *http.Response, err error) {
@@ -178,4 +171,16 @@ func (p *Proxy) do(run func() (resp *http.Response, err error)) (resp *http.Resp
 		return nil, breakerErr
 	}
 	return resp, err
+}
+
+func (p *Proxy) setBalance(c *balance.Config) {
+	if c == nil || len(c.Items) == 0 {
+		return
+	}
+
+	if p.LoadBalance == nil {
+		p.LoadBalance = balance.NewWeightedRR(c)
+	} else {
+		p.LoadBalance.OnChange(c)
+	}
 }
