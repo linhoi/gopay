@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -180,8 +181,14 @@ func (c *Client) ReceiveRealTimeDeveloperNotification(ctx context.Context, req *
 }
 
 func (c *Client) GetVoidedPurchase(ctx context.Context, v VoidedPurchase) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
-	res, err := c.googlePublisher.Purchases.Voidedpurchases.List(v.PackageName).StartTime(v.StartTime.UnixNano() / int64(time.Millisecond)).EndTime(v.EndTime.UnixNano() / int64(time.Millisecond)).Token(v.Token).Do()
+	req := c.googlePublisher.Purchases.Voidedpurchases.List(v.PackageName).Fields().StartTime(v.StartTime.UnixNano() / int64(time.Millisecond)).EndTime(v.EndTime.UnixNano() / int64(time.Millisecond))
+	if v.Token != "" {
+		req = req.Token(v.Token)
+	}
+
+	res, err := req.Do()
 	if err != nil {
+		fmt.Println(res)
 		log.L(ctx).Warn("get voided purchase failed", zap.Error(err), zap.Any("req", v))
 		return nil, "", err
 	}

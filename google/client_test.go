@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"testing"
 	"time"
 
+	"golang.org/x/oauth2"
 	"google.golang.org/api/androidpublisher/v3"
 	"gopkg.in/yaml.v2"
 )
@@ -21,8 +23,8 @@ func TestClient_GetVoidedPurchase(t *testing.T) {
 	}{
 		{
 			name:      "test",
-			startTime: time.Now().AddDate(0, 0, -1),
-			endTime:   time.Now(),
+			startTime: time.Now().UTC().AddDate(0, 0, -3),
+			endTime:   time.Now().UTC(),
 		},
 	}
 
@@ -79,4 +81,35 @@ func testClient() (*Client, string, error) {
 	}
 
 	return client, c.PackageName, nil
+}
+
+func TestClient_GetToken(t *testing.T) {
+	tests := []struct {
+		name          string
+		wantTokenInfo *oauth2.Token
+		wantErr       bool
+	}{
+		{
+			name: "test",
+		},
+
+	}
+
+	c, _, err := testClient()
+	if err != nil {
+		fmt.Println("err", err)
+		return
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTokenInfo, err := c.GetToken(context.Background())
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetToken() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotTokenInfo, tt.wantTokenInfo) {
+				t.Log(gotTokenInfo.AccessToken)
+			}
+		})
+	}
 }
