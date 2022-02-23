@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/linhoi/gopay/common/httpx"
 	"github.com/linhoi/kit/log"
@@ -179,7 +180,7 @@ func (c *Client) ReceiveRealTimeDeveloperNotification(ctx context.Context, req *
 }
 
 func (c *Client) GetVoidedPurchase(ctx context.Context, v VoidedPurchase) (voidedPurchases []*androidpublisher.VoidedPurchase, nextPageToken string, err error) {
-	res, err := c.googlePublisher.Purchases.Voidedpurchases.List(v.PackageName).StartTime(v.StartTime.Unix()).EndTime(v.EndTime.Unix()).Token(v.Token).Do()
+	res, err := c.googlePublisher.Purchases.Voidedpurchases.List(v.PackageName).StartTime(v.StartTime.UnixNano() / int64(time.Millisecond)).EndTime(v.EndTime.UnixNano() / int64(time.Millisecond)).Token(v.Token).Do()
 	if err != nil {
 		log.L(ctx).Warn("get voided purchase failed", zap.Error(err), zap.Any("req", v))
 		return nil, "", err
