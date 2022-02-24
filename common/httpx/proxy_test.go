@@ -20,14 +20,15 @@ func TestNewProxy(t *testing.T) {
 	type args struct {
 		proxyUrl *url.URL
 	}
+	proxy  := "http://127.0.0.1:1087"
 
-	proxyUrl, err := url.Parse("http://127.0.0.1:1087")
+	proxyUrl, err := url.Parse(proxy)
 	if err != nil {
 		t.Error("proxy url is invalid")
 		return
 	}
 
-	err = netx.ValidateUrl("http://127.0.0.1:1087")
+	err = netx.ValidateUrl(proxy)
 	if err != nil {
 		return
 	}
@@ -44,7 +45,7 @@ func TestNewProxy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := NewProxy(tt.args.proxyUrl)
+			client := NewProxy(proxyUrl)
 			res, err := client.Get(aGoogleUrl)
 			if err != nil {
 				t.Error(err)
