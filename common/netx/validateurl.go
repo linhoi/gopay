@@ -46,5 +46,4 @@ func ValidateAddress(address string) error {
 	}
 	conn.Close()
 	return nil
-
 }

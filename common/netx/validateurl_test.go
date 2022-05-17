@@ -42,3 +42,27 @@ func TestValidateUrl(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateAddress(t *testing.T) {
+	type args struct {
+		address string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "socks5 case",
+			args: args{address: "127.0.0.1:7890"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := ValidateAddress(tt.args.address); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateAddress() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

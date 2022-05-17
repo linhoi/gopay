@@ -285,6 +285,7 @@ type SetExpressCheckoutReq struct {
 	Desc         string `url:"PAYMENTREQUEST_0_DESC"`
 	Customer     string `url:"PAYMENTREQUEST_0_CUSTOM"`
 	Invoice      string `url:"PAYMENTREQUEST_0_INVNUM"`
+	CancelURL    string `url:"CANCELURL"`
 }
 
 type setExpressCheckoutReq struct {
@@ -305,7 +306,7 @@ type NVPBase struct {
 }
 
 type GetExpressCheckoutDetailsReq struct {
-	Token   string `url:"TOKEN"`
+	Token string `url:"TOKEN"`
 }
 
 type getExpressCheckoutDetailsReq struct {

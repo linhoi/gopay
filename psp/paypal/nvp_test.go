@@ -1,5 +1,3 @@
-//+build ignore
-
 package paypal
 
 import (
@@ -27,7 +25,8 @@ func TestClient_SetExpressCheckout(t *testing.T) {
 				CurrencyCode: "USD",
 				Desc:         "goodTitle0",
 				Customer:     "myCustomer",
-				Invoice:      "1242334323432442",
+				Invoice:      "124233432343244234",
+				CancelURL:    "https://example.com",
 			}},
 		},
 	}
@@ -58,7 +57,7 @@ func TestClient_GetExpressCheckoutDetails(t *testing.T) {
 	}{
 		{
 			name: "test",
-			args: args{req: GetExpressCheckoutDetailsReq{Token: "EC-8KN66271SK878335A"}},
+			args: args{req: GetExpressCheckoutDetailsReq{Token: "EC-38A5689031140083A"}},
 		},
 	}
 	for _, tt := range tests {
@@ -88,7 +87,7 @@ func TestClient_DoExpressCheckoutPayment(t *testing.T) {
 	}{
 		{
 			name: "test",
-			args: args{req: GetExpressCheckoutDetailsReq{Token: "EC-3TX755711C115351G"}},
+			args: args{req: GetExpressCheckoutDetailsReq{Token: "EC-38A5689031140083A"}},
 		},
 	}
 	for _, tt := range tests {
